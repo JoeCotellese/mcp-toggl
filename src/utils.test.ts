@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { slimEntry, slimEntries, applyLimit } from './utils.js';
-import type { HydratedTimeEntry } from './types.js';
+import { slimEntry, slimEntries, applyLimit, stripReportEntries } from './utils.js';
+import type { HydratedTimeEntry, DailyReport, WeeklyReport } from './types.js';
 
 const fullEntry: HydratedTimeEntry = {
   id: 12345,
@@ -137,5 +137,61 @@ describe('slimEntries', () => {
 
   it('returns empty array for empty input', () => {
     expect(slimEntries([])).toEqual([]);
+  });
+});
+
+describe('stripReportEntries', () => {
+  const sampleDailyReport: DailyReport = {
+    date: '2026-03-11',
+    total_hours: 5,
+    total_seconds: 18000,
+    entries: [{ id: 1, workspace: 'WS', start: '', duration_hours: 1, duration_seconds: 3600 }],
+    by_project: [],
+    by_workspace: [],
+  };
+
+  it('removes entries from a daily report by default', () => {
+    const result = stripReportEntries(sampleDailyReport);
+    expect(result).not.toHaveProperty('entries');
+    // Summaries preserved
+    expect(result.total_hours).toBe(5);
+  });
+
+  it('preserves entries when include_entries is true', () => {
+    const result = stripReportEntries(sampleDailyReport, true);
+    expect(result.entries).toHaveLength(1);
+  });
+
+  it('removes entries from weekly report daily_breakdown', () => {
+    const weeklyReport: WeeklyReport = {
+      week_start: '2026-03-09',
+      week_end: '2026-03-15',
+      total_hours: 10,
+      total_seconds: 36000,
+      daily_breakdown: [sampleDailyReport, { ...sampleDailyReport, date: '2026-03-12' }],
+      by_project: [],
+      by_workspace: [],
+    };
+
+    const result = stripReportEntries(weeklyReport);
+    expect(result).not.toHaveProperty('entries');
+    for (const day of (result as WeeklyReport).daily_breakdown) {
+      expect(day).not.toHaveProperty('entries');
+    }
+  });
+
+  it('preserves weekly daily_breakdown entries when opted in', () => {
+    const weeklyReport: WeeklyReport = {
+      week_start: '2026-03-09',
+      week_end: '2026-03-15',
+      total_hours: 10,
+      total_seconds: 36000,
+      daily_breakdown: [sampleDailyReport],
+      by_project: [],
+      by_workspace: [],
+    };
+
+    const result = stripReportEntries(weeklyReport, true) as WeeklyReport;
+    expect(result.daily_breakdown[0].entries).toHaveLength(1);
   });
 });

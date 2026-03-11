@@ -160,7 +160,7 @@ export interface DailyReport {
   date: string;
   total_hours: number;
   total_seconds: number;
-  entries: ReportEntry[];
+  entries?: ReportEntry[];
   by_project: ProjectSummary[];
   by_workspace: WorkspaceSummary[];
 }

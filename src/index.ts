@@ -20,7 +20,8 @@ import {
   generateProjectSummary,
   generateWorkspaceSummary,
   slimEntries,
-  applyLimit
+  applyLimit,
+  stripReportEntries
 } from './utils.js';
 import type {
   CacheConfig,
@@ -242,6 +243,10 @@ const tools: Tool[] = [
           type: 'string',
           description: 'Date for report (YYYY-MM-DD format, defaults to today)'
         },
+        include_entries: {
+          type: 'boolean',
+          description: 'Include individual time entries in response (default false)'
+        },
         format: {
           type: 'string',
           enum: ['json', 'text'],
@@ -259,6 +264,10 @@ const tools: Tool[] = [
         week_offset: {
           type: 'number',
           description: 'Week offset from current week (0 = this week, -1 = last week)'
+        },
+        include_entries: {
+          type: 'boolean',
+          description: 'Include individual time entries in response (default false)'
         },
         format: {
           type: 'string',
@@ -570,7 +579,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const hydrated = await cache.hydrateTimeEntries(entries);
         
         const report = generateDailyReport(date.toISOString().split('T')[0], hydrated);
-        
+        const stripped = stripReportEntries(report, args?.include_entries as boolean | undefined);
+
         if (args?.format === 'text') {
           return {
             content: [{
@@ -579,11 +589,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }]
           };
         }
-        
+
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify(report, null, 2)
+            text: JSON.stringify(stripped)
           }]
         };
       }
@@ -605,7 +615,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         sunday.setDate(sunday.getDate() + 6);
         
         const report = generateWeeklyReport(monday, sunday, hydrated);
-        
+        const stripped = stripReportEntries(report, args?.include_entries as boolean | undefined);
+
         if (args?.format === 'text') {
           return {
             content: [{
@@ -614,11 +625,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }]
           };
         }
-        
+
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify(report, null, 2)
+            text: JSON.stringify(stripped)
           }]
         };
       }

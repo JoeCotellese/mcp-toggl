@@ -42,6 +42,32 @@ export function applyLimit<T>(items: T[], limit?: number): T[] {
   return items.slice(0, limit ?? DEFAULT_LIMIT);
 }
 
+// Strip verbose entry arrays from reports unless opted in.
+// Works for both DailyReport and WeeklyReport.
+export function stripReportEntries<T extends DailyReport | WeeklyReport>(
+  report: T,
+  includeEntries?: boolean
+): T {
+  if (includeEntries) return report;
+
+  const result = { ...report };
+
+  if ('entries' in result) {
+    delete (result as DailyReport).entries;
+  }
+
+  if ('daily_breakdown' in result) {
+    (result as unknown as WeeklyReport).daily_breakdown =
+      (result as unknown as WeeklyReport).daily_breakdown.map(day => {
+        const stripped = { ...day };
+        delete stripped.entries;
+        return stripped;
+      });
+  }
+
+  return result;
+}
+
 // Convert seconds to hours with decimal precision
 export function secondsToHours(seconds: number): number {
   return Math.round((seconds / 3600) * 100) / 100;
