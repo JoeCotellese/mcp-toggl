@@ -1,5 +1,6 @@
 import type {
   HydratedTimeEntry,
+  SlimTimeEntry,
   DailyReport,
   WeeklyReport,
   ProjectSummary,
@@ -7,6 +8,31 @@ import type {
   ReportEntry,
   DateRange
 } from './types.js';
+
+// Pick only LLM-actionable fields from a hydrated time entry.
+// Uses explicit field picking to prevent future field leakage.
+export function slimEntry(entry: HydratedTimeEntry): SlimTimeEntry {
+  return {
+    id: entry.id,
+    workspace_id: entry.workspace_id,
+    workspace_name: entry.workspace_name,
+    project_id: entry.project_id,
+    project_name: entry.project_name,
+    client_name: entry.client_name,
+    description: entry.description,
+    start: entry.start,
+    stop: entry.stop,
+    duration: entry.duration,
+    tags: entry.tags,
+    billable: entry.billable,
+    task_name: entry.task_name,
+  };
+}
+
+// Convenience wrapper for slimming an array of entries
+export function slimEntries(entries: HydratedTimeEntry[]): SlimTimeEntry[] {
+  return entries.map(slimEntry);
+}
 
 // Convert seconds to hours with decimal precision
 export function secondsToHours(seconds: number): number {

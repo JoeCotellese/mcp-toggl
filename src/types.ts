@@ -138,6 +138,23 @@ export interface HydratedTimeEntry extends TimeEntry {
   tag_names?: string[];
 }
 
+// Slim time entry with only LLM-actionable fields
+export interface SlimTimeEntry {
+  id: number;
+  workspace_id: number;
+  workspace_name: string;
+  project_id?: number;
+  project_name?: string;
+  client_name?: string;
+  description?: string;
+  start: string;
+  stop?: string;
+  duration: number;
+  tags?: string[];
+  billable?: boolean;
+  task_name?: string;
+}
+
 // Report interfaces
 export interface DailyReport {
   date: string;
