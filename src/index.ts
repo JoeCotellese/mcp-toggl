@@ -363,39 +363,6 @@ const tools: Tool[] = [
       }
     },
   },
-  
-  // Cache management
-  {
-    name: 'toggl_warm_cache',
-    description: 'Pre-fetch and cache workspace, project, and client data for better performance',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        workspace_id: {
-          type: 'number',
-          description: 'Specific workspace to warm cache for'
-        }
-      }
-    },
-  },
-  {
-    name: 'toggl_cache_stats',
-    description: 'Get cache statistics and performance metrics',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    },
-  },
-  {
-    name: 'toggl_clear_cache',
-    description: 'Clear all cached data',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    },
-  }
 ];
 
 // Handle tool listing
@@ -786,59 +753,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 name: c.name,
                 archived: c.archived
               }))
-            })
-          }]
-        };
-      }
-      
-      // Cache management
-      case 'toggl_warm_cache': {
-        const workspaceId = (args?.workspace_id as number | undefined) || defaultWorkspaceId;
-        await cache.warmCache(workspaceId);
-        cacheWarmed = true;
-        
-        const stats = cache.getStats();
-        
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ 
-              success: true,
-              message: 'Cache warmed successfully',
-              stats 
-            })
-          }]
-        };
-      }
-      
-      case 'toggl_cache_stats': {
-        const stats = cache.getStats();
-        const hitRate = stats.hits + stats.misses > 0
-          ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100)
-          : 0;
-        
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ 
-              ...stats,
-              hit_rate: `${hitRate}%`,
-              cache_warmed: cacheWarmed
-            })
-          }]
-        };
-      }
-      
-      case 'toggl_clear_cache': {
-        cache.clearCache();
-        cacheWarmed = false;
-        
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ 
-              success: true,
-              message: 'Cache cleared successfully' 
             })
           }]
         };
