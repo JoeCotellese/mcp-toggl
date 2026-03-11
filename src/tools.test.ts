@@ -26,6 +26,12 @@ describe('tool manifest', () => {
     expect(toolNames).not.toContain('toggl_clear_cache');
   });
 
+  it('exposes CRUD time entry tools', () => {
+    expect(toolNames).toContain('toggl_create_time_entry');
+    expect(toolNames).toContain('toggl_update_time_entry');
+    expect(toolNames).toContain('toggl_delete_time_entry');
+  });
+
   it('exposes expected core tools', () => {
     expect(toolNames).toContain('toggl_check_auth');
     expect(toolNames).toContain('toggl_get_time_entries');
