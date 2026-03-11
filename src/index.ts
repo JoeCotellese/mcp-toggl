@@ -18,7 +18,9 @@ import {
   groupEntriesByProject,
   groupEntriesByWorkspace,
   generateProjectSummary,
-  generateWorkspaceSummary
+  generateWorkspaceSummary,
+  slimEntries,
+  applyLimit
 } from './utils.js';
 import type {
   CacheConfig,
@@ -172,6 +174,10 @@ const tools: Tool[] = [
         project_id: {
           type: 'number',
           description: 'Filter by project ID'
+        },
+        limit: {
+          type: 'number',
+          description: 'Max entries to return (default 50, 0 for unlimited)'
         }
       }
     },
@@ -447,14 +453,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         // Hydrate with names
         const hydrated = await cache.hydrateTimeEntries(entries);
-        
+        const slim = slimEntries(hydrated);
+        const limited = applyLimit(slim, args?.limit as number | undefined);
+
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify({ 
-              count: hydrated.length,
-              entries: hydrated 
-            }, null, 2)
+            text: JSON.stringify({
+              count: limited.length,
+              total_available: slim.length,
+              entries: limited
+            })
           }]
         };
       }

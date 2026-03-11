@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { slimEntry, slimEntries } from './utils.js';
+import { slimEntry, slimEntries, applyLimit } from './utils.js';
 import type { HydratedTimeEntry } from './types.js';
 
 const fullEntry: HydratedTimeEntry = {
@@ -99,6 +99,29 @@ describe('slimEntry', () => {
     const original = { ...fullEntry };
     slimEntry(fullEntry);
     expect(fullEntry).toEqual(original);
+  });
+});
+
+describe('applyLimit', () => {
+  const items = Array.from({ length: 100 }, (_, i) => i);
+
+  it('limits to N items when limit < total', () => {
+    expect(applyLimit(items, 50)).toHaveLength(50);
+    expect(applyLimit(items, 50)[49]).toBe(49);
+  });
+
+  it('returns all items when limit > total', () => {
+    const small = [1, 2, 3];
+    expect(applyLimit(small, 50)).toHaveLength(3);
+  });
+
+  it('returns all items when limit is 0 (unlimited)', () => {
+    expect(applyLimit(items, 0)).toHaveLength(100);
+  });
+
+  it('returns all items when limit is undefined (uses default)', () => {
+    // Default is 50
+    expect(applyLimit(items)).toHaveLength(50);
   });
 });
 

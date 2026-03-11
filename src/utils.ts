@@ -34,6 +34,14 @@ export function slimEntries(entries: HydratedTimeEntry[]): SlimTimeEntry[] {
   return entries.map(slimEntry);
 }
 
+const DEFAULT_LIMIT = 50;
+
+// Apply a limit to an array. 0 means unlimited; undefined uses DEFAULT_LIMIT.
+export function applyLimit<T>(items: T[], limit?: number): T[] {
+  if (limit === 0) return items;
+  return items.slice(0, limit ?? DEFAULT_LIMIT);
+}
+
 // Convert seconds to hours with decimal precision
 export function secondsToHours(seconds: number): number {
   return Math.round((seconds / 3600) * 100) / 100;
