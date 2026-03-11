@@ -19,6 +19,7 @@ import {
   groupEntriesByWorkspace,
   generateProjectSummary,
   generateWorkspaceSummary,
+  slimEntry,
   slimEntries,
   applyLimit,
   stripReportEntries
@@ -141,7 +142,7 @@ const tools: Tool[] = [
   // Health/authentication
   {
     name: 'toggl_check_auth',
-    description: 'Verify Toggl API connectivity and authentication is valid',
+    description: 'Verify Toggl API authentication. Returns {authenticated, user:{id,email,fullname}, workspaces:[{id,name}]}.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -151,7 +152,7 @@ const tools: Tool[] = [
   // Time tracking tools
   {
     name: 'toggl_get_time_entries',
-    description: 'Get time entries with optional date range filters. Returns hydrated entries with project/workspace names.',
+    description: 'List time entries. Returns {count, total_available, entries:[{id, workspace_id, workspace_name, project_id, project_name, client_name, description, start, stop, duration, tags, billable, task_name}]}. Defaults to today, max 50 entries.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -185,7 +186,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_get_current_entry',
-    description: 'Get the currently running time entry, if any',
+    description: 'Get the running timer. Returns {running:bool, entry?:{slim fields}} or {running:false} if idle.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -194,7 +195,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_start_timer',
-    description: 'Start a new time entry timer',
+    description: 'Start a timer. Returns {success, entry:{slim fields}}. Requires workspace_id or TOGGL_DEFAULT_WORKSPACE_ID env.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -224,7 +225,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_stop_timer',
-    description: 'Stop the currently running timer',
+    description: 'Stop the running timer. Returns {success, entry:{slim fields}} or {success:false} if no timer running.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -235,7 +236,7 @@ const tools: Tool[] = [
   // Reporting tools
   {
     name: 'toggl_daily_report',
-    description: 'Generate a daily report with hours by project and workspace',
+    description: 'Daily report with hours by project/workspace. Returns summaries only by default; set include_entries:true for individual entries.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -257,7 +258,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_weekly_report',
-    description: 'Generate a weekly report with daily breakdown and project summaries',
+    description: 'Weekly report with daily breakdown and project summaries. Summaries only by default; set include_entries:true for individual entries.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -279,7 +280,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_project_summary',
-    description: 'Get total hours per project for a date range',
+    description: 'Hours per project for a date range. Returns {project_count, total_hours, projects:[{project_name, total_hours, billable_hours, entry_count}]}. Defaults to current week.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -305,7 +306,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_workspace_summary',
-    description: 'Get total hours per workspace for a date range',
+    description: 'Hours per workspace for a date range. Returns {workspace_count, total_hours, workspaces:[{workspace_name, total_hours, project_count}]}. Defaults to current week.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -329,7 +330,7 @@ const tools: Tool[] = [
   // Management tools
   {
     name: 'toggl_list_workspaces',
-    description: 'List all available workspaces',
+    description: 'List all workspaces. Returns {count, workspaces:[{id, name, premium, default_currency}]}.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -338,7 +339,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_list_projects',
-    description: 'List projects for a workspace',
+    description: 'List projects in a workspace. Returns {workspace_id, count, projects:[{id, name, active, billable, color, client_id}]}.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -351,7 +352,7 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_list_clients',
-    description: 'List clients for a workspace',
+    description: 'List clients in a workspace. Returns {workspace_id, count, clients:[{id, name, archived}]}.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -430,7 +431,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 fullname: (me as any).fullname
               },
               workspaces: workspaces.map(w => ({ id: w.id, name: w.name })),
-            }, null, 2)
+            })
           }]
         };
       }
@@ -494,14 +495,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         await ensureCache();
         const hydrated = await cache.hydrateTimeEntries([entry]);
-        
+
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify({ 
+            text: JSON.stringify({
               running: true,
-              entry: hydrated[0] 
-            }, null, 2)
+              entry: slimEntry(hydrated[0])
+            })
           }]
         };
       }
@@ -522,15 +523,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         await ensureCache();
         const hydrated = await cache.hydrateTimeEntries([entry]);
-        
+
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify({ 
+            text: JSON.stringify({
               success: true,
               message: 'Timer started',
-              entry: hydrated[0] 
-            }, null, 2)
+              entry: slimEntry(hydrated[0])
+            })
           }]
         };
       }
@@ -554,15 +555,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         await ensureCache();
         const hydrated = await cache.hydrateTimeEntries([stopped]);
-        
+
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify({ 
+            text: JSON.stringify({
               success: true,
               message: 'Timer stopped',
-              entry: hydrated[0] 
-            }, null, 2)
+              entry: slimEntry(hydrated[0])
+            })
           }]
         };
       }
@@ -673,7 +674,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               project_count: summaries.length,
               total_hours: secondsToHours(summaries.reduce((t, s) => t + s.total_seconds, 0)),
               projects: summaries 
-            }, null, 2)
+            })
           }]
         };
       }
@@ -714,7 +715,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               workspace_count: summaries.length,
               total_hours: secondsToHours(summaries.reduce((t, s) => t + s.total_seconds, 0)),
               workspaces: summaries 
-            }, null, 2)
+            })
           }]
         };
       }
@@ -734,7 +735,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 premium: ws.premium,
                 default_currency: ws.default_currency
               }))
-            }, null, 2)
+            })
           }]
         };
       }
@@ -761,7 +762,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 color: p.color,
                 client_id: p.client_id
               }))
-            }, null, 2)
+            })
           }]
         };
       }
@@ -785,7 +786,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 name: c.name,
                 archived: c.archived
               }))
-            }, null, 2)
+            })
           }]
         };
       }
@@ -805,7 +806,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               success: true,
               message: 'Cache warmed successfully',
               stats 
-            }, null, 2)
+            })
           }]
         };
       }
@@ -823,7 +824,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               ...stats,
               hit_rate: `${hitRate}%`,
               cache_warmed: cacheWarmed
-            }, null, 2)
+            })
           }]
         };
       }
@@ -854,7 +855,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           error: true,
           message: error.message || 'An error occurred',
           details: error.stack 
-        }, null, 2)
+        })
       }]
     };
   }
