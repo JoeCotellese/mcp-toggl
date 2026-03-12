@@ -1,5 +1,6 @@
 import type {
   HydratedTimeEntry,
+  SlimTimeEntry,
   DailyReport,
   WeeklyReport,
   ProjectSummary,
@@ -7,6 +8,65 @@ import type {
   ReportEntry,
   DateRange
 } from './types.js';
+
+// Pick only LLM-actionable fields from a hydrated time entry.
+// Uses explicit field picking to prevent future field leakage.
+export function slimEntry(entry: HydratedTimeEntry): SlimTimeEntry {
+  return {
+    id: entry.id,
+    workspace_id: entry.workspace_id,
+    workspace_name: entry.workspace_name,
+    project_id: entry.project_id,
+    project_name: entry.project_name,
+    client_name: entry.client_name,
+    description: entry.description,
+    start: entry.start,
+    stop: entry.stop,
+    duration: entry.duration,
+    tags: entry.tags,
+    billable: entry.billable,
+    task_name: entry.task_name,
+  };
+}
+
+// Convenience wrapper for slimming an array of entries
+export function slimEntries(entries: HydratedTimeEntry[]): SlimTimeEntry[] {
+  return entries.map(slimEntry);
+}
+
+const DEFAULT_LIMIT = 50;
+
+// Apply a limit to an array. 0 means unlimited; undefined uses DEFAULT_LIMIT.
+export function applyLimit<T>(items: T[], limit?: number): T[] {
+  if (limit === 0) return items;
+  return items.slice(0, limit ?? DEFAULT_LIMIT);
+}
+
+// Strip verbose entry arrays from reports unless opted in.
+// Works for both DailyReport and WeeklyReport.
+export function stripReportEntries<T extends DailyReport | WeeklyReport>(
+  report: T,
+  includeEntries?: boolean
+): T {
+  if (includeEntries) return report;
+
+  const result = { ...report };
+
+  if ('entries' in result) {
+    delete (result as DailyReport).entries;
+  }
+
+  if ('daily_breakdown' in result) {
+    (result as unknown as WeeklyReport).daily_breakdown =
+      (result as unknown as WeeklyReport).daily_breakdown.map(day => {
+        const stripped = { ...day };
+        delete stripped.entries;
+        return stripped;
+      });
+  }
+
+  return result;
+}
 
 // Convert seconds to hours with decimal precision
 export function secondsToHours(seconds: number): number {
