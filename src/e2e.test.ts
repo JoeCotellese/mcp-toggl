@@ -6,16 +6,20 @@ import { resolve } from 'path';
 // e2e test: spawn the MCP server and verify tool manifest via MCP protocol.
 // Requires a TOGGL_API_KEY env var (any value works — we only call listTools, not the Toggl API).
 
+function createTransport() {
+  return new StdioClientTransport({
+    command: 'node',
+    args: [resolve(import.meta.dirname, '..', 'dist', 'index.js')],
+    env: {
+      ...process.env,
+      TOGGL_API_KEY: process.env.TOGGL_API_KEY || 'test-key-for-manifest-check',
+    },
+  });
+}
+
 describe('e2e: tool manifest', () => {
   it('listTools returns expected tool set', async () => {
-    const transport = new StdioClientTransport({
-      command: 'node',
-      args: [resolve(import.meta.dirname, '..', 'dist', 'index.js')],
-      env: {
-        ...process.env,
-        TOGGL_API_KEY: process.env.TOGGL_API_KEY || 'test-key-for-manifest-check',
-      },
-    });
+    const transport = createTransport();
 
     const client = new Client(
       { name: 'test-client', version: '1.0.0' },
@@ -56,6 +60,32 @@ describe('e2e: tool manifest', () => {
     expect(toolNames).not.toContain('toggl_warm_cache');
     expect(toolNames).not.toContain('toggl_cache_stats');
     expect(toolNames).not.toContain('toggl_clear_cache');
+
+    await client.close();
+  }, 10000);
+});
+
+describe('e2e: server instructions', () => {
+  it('initialize response includes instructions string', async () => {
+    const transport = createTransport();
+
+    const client = new Client(
+      { name: 'test-client', version: '1.0.0' },
+      { capabilities: {} }
+    );
+
+    // The connect method performs the initialize handshake.
+    // The server info (including instructions) is available on the client after connect.
+    await client.connect(transport);
+
+    const info = client.getServerVersion();
+    expect(info).toBeDefined();
+
+    const instructions = client.getInstructions();
+    expect(instructions).toBeDefined();
+    expect(typeof instructions).toBe('string');
+    expect(instructions.length).toBeGreaterThan(0);
+    expect(instructions).toContain('Toggl Track');
 
     await client.close();
   }, 10000);
