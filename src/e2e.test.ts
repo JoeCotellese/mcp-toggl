@@ -1,77 +1,79 @@
-import { describe, it, expect } from 'vitest';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { resolve } from 'path';
+import { describe, it, expect } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { resolve } from "path";
 
 // e2e test: spawn the MCP server and verify tool manifest via MCP protocol.
 // Requires a TOGGL_API_KEY env var (any value works — we only call listTools, not the Toggl API).
 
 function createTransport() {
   return new StdioClientTransport({
-    command: 'node',
-    args: [resolve(import.meta.dirname, '..', 'dist', 'index.js')],
+    command: "node",
+    args: [resolve(import.meta.dirname, "..", "dist", "index.js")],
     env: {
       ...process.env,
-      TOGGL_API_KEY: process.env.TOGGL_API_KEY || 'test-key-for-manifest-check',
+      TOGGL_API_KEY: process.env.TOGGL_API_KEY || "test-key-for-manifest-check",
     },
   });
 }
 
-describe('e2e: tool manifest', () => {
-  it('listTools returns expected tool set', async () => {
+describe("e2e: tool manifest", () => {
+  it("listTools returns expected tool set", async () => {
     const transport = createTransport();
 
     const client = new Client(
-      { name: 'test-client', version: '1.0.0' },
-      { capabilities: {} }
+      { name: "test-client", version: "1.0.0" },
+      { capabilities: {} },
     );
     await client.connect(transport);
 
     const { tools } = await client.listTools();
-    const toolNames = tools.map(t => t.name).sort();
+    const toolNames = tools.map((t) => t.name).sort();
 
     const expectedTools = [
-      'toggl_check_auth',
-      'toggl_create_client',
-      'toggl_create_project',
-      'toggl_create_time_entry',
-      'toggl_daily_report',
-      'toggl_delete_client',
-      'toggl_delete_project',
-      'toggl_delete_time_entry',
-      'toggl_get_current_entry',
-      'toggl_get_time_entries',
-      'toggl_list_clients',
-      'toggl_list_projects',
-      'toggl_list_workspaces',
-      'toggl_project_summary',
-      'toggl_start_timer',
-      'toggl_stop_timer',
-      'toggl_update_client',
-      'toggl_update_project',
-      'toggl_update_time_entry',
-      'toggl_weekly_report',
-      'toggl_workspace_summary',
+      "toggl_archive_client",
+      "toggl_check_auth",
+      "toggl_create_client",
+      "toggl_create_project",
+      "toggl_create_time_entry",
+      "toggl_daily_report",
+      "toggl_delete_client",
+      "toggl_delete_project",
+      "toggl_delete_time_entry",
+      "toggl_get_current_entry",
+      "toggl_get_time_entries",
+      "toggl_list_clients",
+      "toggl_list_projects",
+      "toggl_list_workspaces",
+      "toggl_project_summary",
+      "toggl_restore_client",
+      "toggl_start_timer",
+      "toggl_stop_timer",
+      "toggl_update_client",
+      "toggl_update_project",
+      "toggl_update_time_entry",
+      "toggl_weekly_report",
+      "toggl_workspace_summary",
     ].sort();
 
     expect(toolNames).toEqual(expectedTools);
 
     // Verify cache tools are absent
-    expect(toolNames).not.toContain('toggl_warm_cache');
-    expect(toolNames).not.toContain('toggl_cache_stats');
-    expect(toolNames).not.toContain('toggl_clear_cache');
+    expect(toolNames).not.toContain("toggl_warm_cache");
+    expect(toolNames).not.toContain("toggl_cache_stats");
+    expect(toolNames).not.toContain("toggl_clear_cache");
 
     await client.close();
   }, 10000);
 });
 
-describe('e2e: server instructions', () => {
-  it('initialize response includes instructions string', async () => {
+describe("e2e: server instructions", () => {
+  it("initialize response includes instructions string", async () => {
     const transport = createTransport();
 
     const client = new Client(
-      { name: 'test-client', version: '1.0.0' },
-      { capabilities: {} }
+      { name: "test-client", version: "1.0.0" },
+      { capabilities: {} },
     );
 
     // The connect method performs the initialize handshake.
@@ -83,9 +85,9 @@ describe('e2e: server instructions', () => {
 
     const instructions = client.getInstructions();
     expect(instructions).toBeDefined();
-    expect(typeof instructions).toBe('string');
+    expect(typeof instructions).toBe("string");
     expect(instructions.length).toBeGreaterThan(0);
-    expect(instructions).toContain('Toggl Track');
+    expect(instructions).toContain("Toggl Track");
 
     await client.close();
   }, 10000);
