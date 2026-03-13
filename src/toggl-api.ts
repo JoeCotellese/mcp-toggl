@@ -9,7 +9,11 @@ import type {
   TimeEntry,
   TimeEntriesRequest,
   CreateTimeEntryRequest,
-  UpdateTimeEntryRequest
+  UpdateTimeEntryRequest,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  CreateClientRequest,
+  UpdateClientRequest
 } from './types.js';
 
 export class TogglAPI {
@@ -119,6 +123,19 @@ export class TogglAPI {
     throw new Error(`Project ${projectId} not found`);
   }
   
+  // Project CRUD methods
+  async createProject(workspaceId: number, project: CreateProjectRequest): Promise<Project> {
+    return this.request<Project>('POST', `/workspaces/${workspaceId}/projects`, project);
+  }
+
+  async updateProject(workspaceId: number, projectId: number, updates: UpdateProjectRequest): Promise<Project> {
+    return this.request<Project>('PUT', `/workspaces/${workspaceId}/projects/${projectId}`, updates);
+  }
+
+  async deleteProject(workspaceId: number, projectId: number): Promise<void> {
+    await this.request<void>('DELETE', `/workspaces/${workspaceId}/projects/${projectId}`);
+  }
+
   // Client methods
   async getClients(workspaceId: number): Promise<Client[]> {
     return this.request<Client[]>('GET', `/workspaces/${workspaceId}/clients`);
@@ -140,6 +157,19 @@ export class TogglAPI {
     throw new Error(`Client ${clientId} not found`);
   }
   
+  // Client CRUD methods
+  async createClient(workspaceId: number, client: CreateClientRequest): Promise<Client> {
+    return this.request<Client>('POST', `/workspaces/${workspaceId}/clients`, client);
+  }
+
+  async updateClient(workspaceId: number, clientId: number, updates: UpdateClientRequest): Promise<Client> {
+    return this.request<Client>('PUT', `/workspaces/${workspaceId}/clients/${clientId}`, updates);
+  }
+
+  async deleteClient(workspaceId: number, clientId: number): Promise<void> {
+    await this.request<void>('DELETE', `/workspaces/${workspaceId}/clients/${clientId}`);
+  }
+
   // Task methods
   async getTasks(workspaceId: number, projectId: number): Promise<Task[]> {
     return this.request<Task[]>('GET', `/workspaces/${workspaceId}/projects/${projectId}/tasks`);

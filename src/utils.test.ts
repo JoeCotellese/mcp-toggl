@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { slimEntry, slimEntries, applyLimit, stripReportEntries } from './utils.js';
-import type { HydratedTimeEntry, DailyReport, WeeklyReport } from './types.js';
+import { slimEntry, slimEntries, applyLimit, stripReportEntries, slimProject, slimClient } from './utils.js';
+import type { HydratedTimeEntry, DailyReport, WeeklyReport, Project, Client } from './types.js';
 
 const fullEntry: HydratedTimeEntry = {
   id: 12345,
@@ -193,5 +193,141 @@ describe('stripReportEntries', () => {
 
     const result = stripReportEntries(weeklyReport, true) as WeeklyReport;
     expect(result.daily_breakdown[0].entries).toHaveLength(1);
+  });
+});
+
+describe('slimProject', () => {
+  const fullProject: Project = {
+    id: 200,
+    workspace_id: 100,
+    name: 'Project Alpha',
+    client_id: 50,
+    is_private: true,
+    active: true,
+    at: '2026-03-11T10:00:00Z',
+    created_at: '2026-01-01T00:00:00Z',
+    color: '#ff0000',
+    billable: true,
+    template: false,
+    auto_estimates: false,
+    estimated_hours: 100,
+    rate: 150,
+    rate_last_updated: '2026-02-01T00:00:00Z',
+    currency: 'USD',
+    recurring: false,
+    recurring_parameters: null,
+    current_period: null,
+    fixed_fee: 5000,
+    actual_hours: 42,
+    wid: 100,
+    cid: 50,
+  };
+
+  it('strips noise fields, preserves actionable fields', () => {
+    const slim = slimProject(fullProject);
+
+    expect(slim).toEqual({
+      id: 200,
+      workspace_id: 100,
+      name: 'Project Alpha',
+      client_id: 50,
+      active: true,
+      billable: true,
+      color: '#ff0000',
+    });
+
+    // Verify noise fields are absent
+    expect(slim).not.toHaveProperty('is_private');
+    expect(slim).not.toHaveProperty('at');
+    expect(slim).not.toHaveProperty('created_at');
+    expect(slim).not.toHaveProperty('template');
+    expect(slim).not.toHaveProperty('auto_estimates');
+    expect(slim).not.toHaveProperty('estimated_hours');
+    expect(slim).not.toHaveProperty('rate');
+    expect(slim).not.toHaveProperty('rate_last_updated');
+    expect(slim).not.toHaveProperty('currency');
+    expect(slim).not.toHaveProperty('recurring');
+    expect(slim).not.toHaveProperty('recurring_parameters');
+    expect(slim).not.toHaveProperty('current_period');
+    expect(slim).not.toHaveProperty('fixed_fee');
+    expect(slim).not.toHaveProperty('actual_hours');
+    expect(slim).not.toHaveProperty('wid');
+    expect(slim).not.toHaveProperty('cid');
+  });
+
+  it('handles minimal project', () => {
+    const minimal: Project = {
+      id: 1,
+      workspace_id: 10,
+      name: 'Minimal',
+    };
+
+    const slim = slimProject(minimal);
+    expect(slim).toEqual({
+      id: 1,
+      workspace_id: 10,
+      name: 'Minimal',
+      client_id: undefined,
+      active: undefined,
+      billable: undefined,
+      color: undefined,
+    });
+  });
+
+  it('does not mutate the original', () => {
+    const original = { ...fullProject };
+    slimProject(fullProject);
+    expect(fullProject).toEqual(original);
+  });
+});
+
+describe('slimClient', () => {
+  const fullClient: Client = {
+    id: 50,
+    workspace_id: 100,
+    name: 'Acme Corp',
+    at: '2026-03-11T10:00:00Z',
+    notes: 'Important client',
+    archived: false,
+    wid: 100,
+  };
+
+  it('strips noise fields, preserves actionable fields', () => {
+    const slim = slimClient(fullClient);
+
+    expect(slim).toEqual({
+      id: 50,
+      workspace_id: 100,
+      name: 'Acme Corp',
+      archived: false,
+      notes: 'Important client',
+    });
+
+    // Verify noise fields are absent
+    expect(slim).not.toHaveProperty('at');
+    expect(slim).not.toHaveProperty('wid');
+  });
+
+  it('handles minimal client', () => {
+    const minimal: Client = {
+      id: 1,
+      workspace_id: 10,
+      name: 'Minimal',
+    };
+
+    const slim = slimClient(minimal);
+    expect(slim).toEqual({
+      id: 1,
+      workspace_id: 10,
+      name: 'Minimal',
+      archived: undefined,
+      notes: undefined,
+    });
+  });
+
+  it('does not mutate the original', () => {
+    const original = { ...fullClient };
+    slimClient(fullClient);
+    expect(fullClient).toEqual(original);
   });
 });

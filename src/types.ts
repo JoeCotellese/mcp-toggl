@@ -248,6 +248,64 @@ export interface UpdateTimeEntryRequest {
   duration?: number;
 }
 
+// Project CRUD request interfaces
+export interface CreateProjectRequest {
+  name: string;
+  client_id?: number;
+  is_private?: boolean;
+  active?: boolean;
+  color?: string;
+  billable?: boolean;
+  auto_estimates?: boolean;
+  estimated_hours?: number;
+  rate?: number;
+  currency?: string;
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  client_id?: number | null;
+  is_private?: boolean;
+  active?: boolean;
+  color?: string;
+  billable?: boolean;
+  auto_estimates?: boolean;
+  estimated_hours?: number;
+  rate?: number;
+  currency?: string;
+}
+
+// Client CRUD request interfaces
+export interface CreateClientRequest {
+  name: string;
+  notes?: string;
+}
+
+export interface UpdateClientRequest {
+  name?: string;
+  notes?: string;
+  archived?: boolean;
+}
+
+// Slim representations for LLM consumption
+export interface SlimProject {
+  id: number;
+  workspace_id: number;
+  name: string;
+  client_id?: number;
+  active?: boolean;
+  billable?: boolean;
+  color?: string;
+}
+
+export interface SlimClient {
+  id: number;
+  workspace_id: number;
+  name: string;
+  archived?: boolean;
+  notes?: string;
+}
+
 // Cache interfaces
 export interface CacheEntry<T> {
   data: T;

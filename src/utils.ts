@@ -1,6 +1,10 @@
 import type {
   HydratedTimeEntry,
   SlimTimeEntry,
+  Project,
+  SlimProject,
+  Client,
+  SlimClient,
   DailyReport,
   WeeklyReport,
   ProjectSummary,
@@ -32,6 +36,30 @@ export function slimEntry(entry: HydratedTimeEntry): SlimTimeEntry {
 // Convenience wrapper for slimming an array of entries
 export function slimEntries(entries: HydratedTimeEntry[]): SlimTimeEntry[] {
   return entries.map(slimEntry);
+}
+
+// Pick only LLM-actionable fields from a project.
+export function slimProject(project: Project): SlimProject {
+  return {
+    id: project.id,
+    workspace_id: project.workspace_id,
+    name: project.name,
+    client_id: project.client_id,
+    active: project.active,
+    billable: project.billable,
+    color: project.color,
+  };
+}
+
+// Pick only LLM-actionable fields from a client.
+export function slimClient(client: Client): SlimClient {
+  return {
+    id: client.id,
+    workspace_id: client.workspace_id,
+    name: client.name,
+    archived: client.archived,
+    notes: client.notes,
+  };
 }
 
 const DEFAULT_LIMIT = 50;
