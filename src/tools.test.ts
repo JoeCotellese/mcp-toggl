@@ -32,6 +32,18 @@ describe('tool manifest', () => {
     expect(toolNames).toContain('toggl_delete_time_entry');
   });
 
+  it('exposes CRUD project tools', () => {
+    expect(toolNames).toContain('toggl_create_project');
+    expect(toolNames).toContain('toggl_update_project');
+    expect(toolNames).toContain('toggl_delete_project');
+  });
+
+  it('exposes CRUD client tools', () => {
+    expect(toolNames).toContain('toggl_create_client');
+    expect(toolNames).toContain('toggl_update_client');
+    expect(toolNames).toContain('toggl_delete_client');
+  });
+
   it('exposes expected core tools', () => {
     expect(toolNames).toContain('toggl_check_auth');
     expect(toolNames).toContain('toggl_get_time_entries');

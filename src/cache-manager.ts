@@ -268,6 +268,23 @@ export class CacheManager {
     }
   }
   
+  // Cache mutation methods for CRUD operations
+  updateCachedProject(project: Project): void {
+    this.setCached(this.projects, project.id, project);
+  }
+
+  removeCachedProject(id: number): void {
+    this.projects.delete(id);
+  }
+
+  updateCachedClient(client: Client): void {
+    this.setCached(this.clients, client.id, client);
+  }
+
+  removeCachedClient(id: number): void {
+    this.clients.delete(id);
+  }
+
   // Warm cache by pre-fetching common entities
   async warmCache(workspaceId?: number): Promise<void> {
     // Log to stderr to avoid interfering with MCP stdio protocol

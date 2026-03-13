@@ -21,12 +21,18 @@ import {
   generateWorkspaceSummary,
   slimEntry,
   slimEntries,
+  slimProject,
+  slimClient,
   applyLimit,
   stripReportEntries
 } from './utils.js';
 import type {
   CacheConfig,
-  TimeEntry
+  TimeEntry,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  CreateClientRequest,
+  UpdateClientRequest
 } from './types.js';
 
 // Version for CLI output and server metadata
@@ -479,6 +485,178 @@ const tools: Tool[] = [
           description: 'Workspace ID (uses default if not provided)'
         }
       }
+    },
+  },
+
+  // Project CRUD tools
+  {
+    name: 'toggl_create_project',
+    description: 'Create a project. Returns {success, project:{id, workspace_id, name, client_id, active, billable, color}}. Requires workspace_id and name.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: {
+          type: 'number',
+          description: 'Workspace ID (uses default if not provided)'
+        },
+        name: {
+          type: 'string',
+          description: 'Project name (required)'
+        },
+        client_id: {
+          type: 'number',
+          description: 'Client ID to associate'
+        },
+        is_private: {
+          type: 'boolean',
+          description: 'Whether the project is private'
+        },
+        active: {
+          type: 'boolean',
+          description: 'Whether the project is active (default true)'
+        },
+        color: {
+          type: 'string',
+          description: 'Project color hex code'
+        },
+        billable: {
+          type: 'boolean',
+          description: 'Whether the project is billable'
+        },
+      },
+      required: ['name']
+    },
+  },
+  {
+    name: 'toggl_update_project',
+    description: 'Update an existing project. Returns {success, project:{slim fields}}. Requires workspace_id and project_id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: {
+          type: 'number',
+          description: 'Workspace ID (required)'
+        },
+        project_id: {
+          type: 'number',
+          description: 'Project ID (required)'
+        },
+        name: {
+          type: 'string',
+          description: 'Project name'
+        },
+        client_id: {
+          type: 'number',
+          description: 'Client ID (set null to remove)'
+        },
+        is_private: {
+          type: 'boolean',
+          description: 'Whether the project is private'
+        },
+        active: {
+          type: 'boolean',
+          description: 'Whether the project is active'
+        },
+        color: {
+          type: 'string',
+          description: 'Project color hex code'
+        },
+        billable: {
+          type: 'boolean',
+          description: 'Whether the project is billable'
+        },
+      },
+      required: ['workspace_id', 'project_id']
+    },
+  },
+  {
+    name: 'toggl_delete_project',
+    description: 'Delete a project. Returns {success, message}. Requires workspace_id and project_id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: {
+          type: 'number',
+          description: 'Workspace ID (required)'
+        },
+        project_id: {
+          type: 'number',
+          description: 'Project ID (required)'
+        }
+      },
+      required: ['workspace_id', 'project_id']
+    },
+  },
+
+  // Client CRUD tools
+  {
+    name: 'toggl_create_client',
+    description: 'Create a client. Returns {success, client:{id, workspace_id, name, archived, notes}}. Requires workspace_id and name.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: {
+          type: 'number',
+          description: 'Workspace ID (uses default if not provided)'
+        },
+        name: {
+          type: 'string',
+          description: 'Client name (required)'
+        },
+        notes: {
+          type: 'string',
+          description: 'Notes about the client'
+        },
+      },
+      required: ['name']
+    },
+  },
+  {
+    name: 'toggl_update_client',
+    description: 'Update an existing client. Returns {success, client:{slim fields}}. Requires workspace_id and client_id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: {
+          type: 'number',
+          description: 'Workspace ID (required)'
+        },
+        client_id: {
+          type: 'number',
+          description: 'Client ID (required)'
+        },
+        name: {
+          type: 'string',
+          description: 'Client name'
+        },
+        notes: {
+          type: 'string',
+          description: 'Notes about the client'
+        },
+        archived: {
+          type: 'boolean',
+          description: 'Whether the client is archived'
+        },
+      },
+      required: ['workspace_id', 'client_id']
+    },
+  },
+  {
+    name: 'toggl_delete_client',
+    description: 'Delete a client. Returns {success, message}. Requires workspace_id and client_id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: {
+          type: 'number',
+          description: 'Workspace ID (required)'
+        },
+        client_id: {
+          type: 'number',
+          description: 'Client ID (required)'
+        }
+      },
+      required: ['workspace_id', 'client_id']
     },
   },
 ];
@@ -957,6 +1135,151 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
       
+      // Project CRUD handlers
+      case 'toggl_create_project': {
+        const workspaceId = (args?.workspace_id as number | undefined) || defaultWorkspaceId;
+        if (!workspaceId) {
+          throw new Error('Workspace ID required (set TOGGL_DEFAULT_WORKSPACE_ID or provide workspace_id)');
+        }
+
+        const projectData: CreateProjectRequest = {
+          name: args?.name as string,
+        };
+        if (args?.client_id !== undefined) projectData.client_id = args.client_id as number;
+        if (args?.is_private !== undefined) projectData.is_private = args.is_private as boolean;
+        if (args?.active !== undefined) projectData.active = args.active as boolean;
+        if (args?.color !== undefined) projectData.color = args.color as string;
+        if (args?.billable !== undefined) projectData.billable = args.billable as boolean;
+
+        const project = await api.createProject(workspaceId, projectData);
+        cache.updateCachedProject(project);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: 'Project created',
+              project: slimProject(project)
+            })
+          }]
+        };
+      }
+
+      case 'toggl_update_project': {
+        const workspaceId = args?.workspace_id as number;
+        const projectId = args?.project_id as number;
+
+        const updates: UpdateProjectRequest = {};
+        if (args?.name !== undefined) updates.name = args.name as string;
+        if (args?.client_id !== undefined) updates.client_id = args.client_id as number | null;
+        if (args?.is_private !== undefined) updates.is_private = args.is_private as boolean;
+        if (args?.active !== undefined) updates.active = args.active as boolean;
+        if (args?.color !== undefined) updates.color = args.color as string;
+        if (args?.billable !== undefined) updates.billable = args.billable as boolean;
+
+        const project = await api.updateProject(workspaceId, projectId, updates);
+        cache.updateCachedProject(project);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: 'Project updated',
+              project: slimProject(project)
+            })
+          }]
+        };
+      }
+
+      case 'toggl_delete_project': {
+        const workspaceId = args?.workspace_id as number;
+        const projectId = args?.project_id as number;
+
+        await api.deleteProject(workspaceId, projectId);
+        cache.removeCachedProject(projectId);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: `Project ${projectId} deleted`
+            })
+          }]
+        };
+      }
+
+      // Client CRUD handlers
+      case 'toggl_create_client': {
+        const workspaceId = (args?.workspace_id as number | undefined) || defaultWorkspaceId;
+        if (!workspaceId) {
+          throw new Error('Workspace ID required (set TOGGL_DEFAULT_WORKSPACE_ID or provide workspace_id)');
+        }
+
+        const clientData: CreateClientRequest = {
+          name: args?.name as string,
+        };
+        if (args?.notes !== undefined) clientData.notes = args.notes as string;
+
+        const client = await api.createClient(workspaceId, clientData);
+        cache.updateCachedClient(client);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: 'Client created',
+              client: slimClient(client)
+            })
+          }]
+        };
+      }
+
+      case 'toggl_update_client': {
+        const workspaceId = args?.workspace_id as number;
+        const clientId = args?.client_id as number;
+
+        const updates: UpdateClientRequest = {};
+        if (args?.name !== undefined) updates.name = args.name as string;
+        if (args?.notes !== undefined) updates.notes = args.notes as string;
+        if (args?.archived !== undefined) updates.archived = args.archived as boolean;
+
+        const client = await api.updateClient(workspaceId, clientId, updates);
+        cache.updateCachedClient(client);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: 'Client updated',
+              client: slimClient(client)
+            })
+          }]
+        };
+      }
+
+      case 'toggl_delete_client': {
+        const workspaceId = args?.workspace_id as number;
+        const clientId = args?.client_id as number;
+
+        await api.deleteClient(workspaceId, clientId);
+        cache.removeCachedClient(clientId);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: `Client ${clientId} deleted`
+            })
+          }]
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

@@ -26,16 +26,14 @@ describe('e2e: tool manifest', () => {
     const { tools } = await client.listTools();
     const toolNames = tools.map(t => t.name).sort();
 
-    // Expected tools (alphabetical): 14 original - 3 cache + 3 CRUD = 14, but let's count:
-    // check_auth, get_time_entries, get_current_entry, start_timer, stop_timer,
-    // create_time_entry, update_time_entry, delete_time_entry,
-    // daily_report, weekly_report, project_summary, workspace_summary,
-    // list_workspaces, list_projects, list_clients
-    // = 15 total (was 14 original, -3 cache, +3 CRUD, +1 net)
     const expectedTools = [
       'toggl_check_auth',
+      'toggl_create_client',
+      'toggl_create_project',
       'toggl_create_time_entry',
       'toggl_daily_report',
+      'toggl_delete_client',
+      'toggl_delete_project',
       'toggl_delete_time_entry',
       'toggl_get_current_entry',
       'toggl_get_time_entries',
@@ -45,6 +43,8 @@ describe('e2e: tool manifest', () => {
       'toggl_project_summary',
       'toggl_start_timer',
       'toggl_stop_timer',
+      'toggl_update_client',
+      'toggl_update_project',
       'toggl_update_time_entry',
       'toggl_weekly_report',
       'toggl_workspace_summary',
