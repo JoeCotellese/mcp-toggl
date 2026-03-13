@@ -134,6 +134,14 @@ const server = new Server(
     capabilities: {
       tools: {},
     },
+    instructions: [
+      'Toggl Track time-tracking server.',
+      'Use list_workspaces to discover workspace IDs before calling tools that require one.',
+      'Prefer the "period" parameter over raw start/end dates when available.',
+      'Reports return summaries by default; set include_entries:true only when individual entries are needed.',
+      'start_timer will fail if a timer is already running — call stop_timer first.',
+      'delete_time_entry is irreversible — confirm with the user before calling.',
+    ].join(' '),
   }
 );
 
@@ -142,17 +150,29 @@ const tools: Tool[] = [
   // Health/authentication
   {
     name: 'toggl_check_auth',
+    title: 'Check Authentication',
     description: 'Verify Toggl API authentication. Returns {authenticated, user:{id,email,fullname}, workspaces:[{id,name}]}.',
     inputSchema: {
       type: 'object',
       properties: {},
       required: []
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   // Time tracking tools
   {
     name: 'toggl_get_time_entries',
+    title: 'Get Time Entries',
     description: 'List time entries. Returns {count, total_available, entries:[{id, workspace_id, workspace_name, project_id, project_name, client_name, description, start, stop, duration, tags, billable, task_name}]}. Defaults to today, max 50 entries.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -186,16 +206,29 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_get_current_entry',
+    title: 'Get Current Timer',
     description: 'Get the running timer. Returns {running:bool, entry?:{slim fields}} or {running:false} if idle.',
     inputSchema: {
       type: 'object',
       properties: {},
       required: []
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   {
     name: 'toggl_start_timer',
+    title: 'Start Timer',
     description: 'Start a timer. Returns {success, entry:{slim fields}}. Requires workspace_id or TOGGL_DEFAULT_WORKSPACE_ID env.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -225,18 +258,32 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_stop_timer',
+    title: 'Stop Timer',
     description: 'Stop the running timer. Returns {success, entry:{slim fields}} or {success:false} if no timer running.',
     inputSchema: {
       type: 'object',
       properties: {},
       required: []
     },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   
   // CRUD tools
   {
     name: 'toggl_create_time_entry',
+    title: 'Create Time Entry',
     description: 'Create a completed time entry. Returns {success, entry:{slim fields}}. Requires workspace_id and start (ISO 8601). Provide stop or duration.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -283,7 +330,14 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_update_time_entry',
+    title: 'Update Time Entry',
     description: 'Update an existing time entry. Returns {success, entry:{slim fields}}. Requires workspace_id and entry_id.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -334,7 +388,14 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_delete_time_entry',
+    title: 'Delete Time Entry',
     description: 'Delete a time entry. Returns {success, message}. Requires workspace_id and entry_id.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -354,7 +415,13 @@ const tools: Tool[] = [
   // Reporting tools
   {
     name: 'toggl_daily_report',
+    title: 'Daily Report',
     description: 'Daily report with hours by project/workspace. Returns summaries only by default; set include_entries:true for individual entries.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -376,7 +443,13 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_weekly_report',
+    title: 'Weekly Report',
     description: 'Weekly report with daily breakdown and project summaries. Summaries only by default; set include_entries:true for individual entries.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -398,7 +471,13 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_project_summary',
+    title: 'Project Summary',
     description: 'Hours per project for a date range. Returns {project_count, total_hours, projects:[{project_name, total_hours, billable_hours, entry_count}]}. Defaults to current week.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -424,7 +503,13 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_workspace_summary',
+    title: 'Workspace Summary',
     description: 'Hours per workspace for a date range. Returns {workspace_count, total_hours, workspaces:[{workspace_name, total_hours, project_count}]}. Defaults to current week.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -448,16 +533,28 @@ const tools: Tool[] = [
   // Management tools
   {
     name: 'toggl_list_workspaces',
+    title: 'List Workspaces',
     description: 'List all workspaces. Returns {count, workspaces:[{id, name, premium, default_currency}]}.',
     inputSchema: {
       type: 'object',
       properties: {},
       required: []
     },
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
   },
   {
     name: 'toggl_list_projects',
+    title: 'List Projects',
     description: 'List projects in a workspace. Returns {workspace_id, count, projects:[{id, name, active, billable, color, client_id}]}.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -470,7 +567,13 @@ const tools: Tool[] = [
   },
   {
     name: 'toggl_list_clients',
+    title: 'List Clients',
     description: 'List clients in a workspace. Returns {workspace_id, count, clients:[{id, name, archived}]}.',
+    annotations: {
+      readOnlyHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
